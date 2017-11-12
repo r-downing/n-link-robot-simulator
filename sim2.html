@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html ng-app="nLinkSim">
+
+<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.5/angular.min.js"></script>
+	<script>
+
+		var nLinkSim = angular.module('nLinkSim', []);
+		nLinkSim.controller('mainController', function ($scope, $http, $interval) {
+
+			$scope.svg = document.querySelector('svg');
+
+			$scope.lens = [60, 60, 50, 40, 30];
+
+
+			$scope.showRobot = function (angs, lens) {
+				var p = [], angsum = 0;
+				var screen = $scope.svg.getBoundingClientRect();
+				$scope.center = {x:screen.width/2,y:screen.height/2};
+				p[0] = $scope.center;// { x: (screen.width / 2), y: (screen.height / 2) };
+				for (i = 0; i < angs.length; i++) {
+					angsum += angs[i];
+					p[i + 1] = {
+						x: (p[i].x + lens[i] * Math.cos(angsum)),
+						y: (p[i].y + lens[i] * Math.sin(angsum))
+					};
+				}
+
+				return p;
+				//return nls(angs, lens);
+			}
+
+			$scope.nLinkJac = function(angs, lens){
+				var angsum = 0, jac = [];
+				for(i=0;i<angs.length;i++){
+					angsum +=angs[i];
+				}
+				jac[angs.length-1] = {};
+				jac[angs.length-1].x = -lens[angs.length-1]*Math.sin(angsum);
+				jac[angs.length-1].y = lens[angs.length-1]*Math.cos(angsum);
+				for(i = angs.length-2;i>=0;i--){
+					angsum -= angs[i]+1;
+					jac[i] = {};
+					jac[i].x = jac[i+1].x - lens[i]*Math.sin(angsum);
+					jac[i].y = jac[i+1].y + lens[i]*Math.cos(angsum);
+				}
+				return jac;
+			}
+
+			$scope.goToPoint = function (pt, lens) {
+
+				//if(!$scope.angs){
+				$scope.angs = [];
+				$scope.totalLen = 0;
+				$scope.maxLen = 0;
+
+				for (i = 0; i < lens.length; i++) {
+					$scope.angs[i] = 0;
+					$scope.totalLen += lens[i];
+					if ($scope.maxLen < lens[i]) $scope.maxLen = lens[i];
+				}
+				//}
+				$scope.p = $scope.showRobot($scope.angs, lens);
+
+				if(!$scope.G) $scope.G = $scope.p[$scope.p.length-1];
+
+				//while(1) $scope.mainloop(lens);
+
+			} //goToPoint
+
+			$scope.mainloop = function(lens){
+				
+				var vec = {x:($scope.G.x - $scope.p[$scope.p.length-1].x),y:($scope.G.y - $scope.p[$scope.p.length-1].y)};
+				var norm = Math.hypot(vec.x, vec.y);
+				vec.x/=norm;
+				vec.y/=norm;
+
+				var jac = $scope.nLinkJac($scope.angs, lens);
+
+				var lambda = .1/$scope.maxLen;
+
+				for(i=0;i<$scope.angs.length; i++){
+					$scope.angs[i] += lambda*(jac[i].x*vec.x + jac[i].y*vec.y);
+				}
+				console.log($scope.angs);
+				$scope.p = $scope.showRobot($scope.angs, lens);
+			}
+
+			$scope.goToPoint(0, $scope.lens);
+
+
+			// Create an SVGPoint for future math
+			$scope.pt = $scope.svg.createSVGPoint();
+			// Get point in global SVG space
+			$scope.cursorPoint = function (evt) {
+				$scope.pt.x = evt.clientX; $scope.pt.y = evt.clientY;
+				return $scope.pt.matrixTransform($scope.svg.getScreenCTM().inverse());
+			}
+
+			$scope.m = function (evt) {
+				//$scope.G = 
+				var t = $scope.cursorPoint(evt);
+				if(Math.hypot(t.x-$scope.center.x,t.y-$scope.center.y) <$scope.totalLen){
+					$scope.G=t;
+				}
+
+			}
+
+			$scope.goToPoint(0, $scope.lens);
+			$interval(function(){
+				$scope.mainloop($scope.lens);
+			}, 100);
+			/*
+						$scope.T = [0, 0, 0, 0, 0]; //array of relative angles
+			
+						$scope.L = 60; //link length
+			
+			
+						$scope.forwardKinematics = function () {
+							//temporary array
+							var p = [], Ts = 0;
+			
+							var screen = $scope.svg.getBoundingClientRect();
+							$scope.xc = screen.width / 2;
+							$scope.yc = screen.height / 2;
+			
+							//for each link
+							for (i = 0; i < $scope.T.length; i++) {
+								Ts += $scope.T[i]; //sum angles to get absolute angle
+								//compute x,y coordinates
+								//trig*L + endpoint of previous link
+								p[i] = {
+									x: ((Math.cos(Ts) * $scope.L) + (i ? p[i - 1].x : $scope.xc)),
+									y: ((Math.sin(Ts) * $scope.L) + (i ? p[i - 1].y : $scope.yc))
+								};
+							}
+							$scope.p = p;
+						};
+			
+			
+			
+			
+			
+						// Create an SVGPoint for future math
+						$scope.pt = $scope.svg.createSVGPoint();
+						// Get point in global SVG space
+						$scope.cursorPoint = function (evt) {
+							$scope.pt.x = evt.clientX; $scope.pt.y = evt.clientY;
+							return $scope.pt.matrixTransform($scope.svg.getScreenCTM().inverse());
+						}
+			
+						$scope.m = function (evt) {
+							$scope.G = $scope.cursorPoint(evt);
+						}
+						$interval(function(){
+							//while (Math.abs($scope.p[$scope.p.length-1].x - $scope.G.x)>2 && Math.abs($scope.p[$scope.p.length-1].y - $scope.G.y)>2){
+							//console.log("b");
+							$scope.forwardKinematics();
+							//attractive force from robot endpoint to goal;
+							$scope.F = {
+								x: ($scope.G.x - $scope.p[$scope.p.length - 1].x),
+								y: ($scope.G.y - $scope.p[$scope.p.length - 1].y)
+							};
+							var n = Math.hypot($scope.F.x, $scope.F.y);
+							if (n > .05) {
+								$scope.F.x /= n;
+								$scope.F.y /= n;
+							} else {
+								$scope.F.x /= .05;
+								$scope.F.y /= .05;
+							}
+							//console.log($scope.F);
+			
+			
+							var ang_sum = 0;
+							var angs=[];
+							var angs2=[];
+							for(i=0;i<$scope.p.length;i++){
+								angs[i] = Math.atan2(($scope.p[i].y-(i?$scope.p[i-1].y:$scope.yc)),($scope.p[i].x-(i?$scope.p[i-1].x:$scope.xc)));
+								if(i) angs[i] -= angs[i-1];
+								ang_sum += angs[i];
+								//ang_sum += $scope.T[i];
+								angs2[i]=0;
+								for(j=0;j<$scope.p.length;j++){
+									angs2[i] += $scope.T[j];
+								}
+							}
+							console.log("aaa");
+							console.log(angs);
+							console.log($scope.T);
+							
+			
+							$scope.J = []; //jacobian
+							$scope.J[$scope.T.length - 1] = {};
+							$scope.J[$scope.T.length - 1].x = -$scope.L * Math.sin(ang_sum);
+							$scope.J[$scope.T.length - 1].y = $scope.L * Math.cos(ang_sum);
+			
+							for (i = $scope.T.length - 2; i >= 0; i--) {
+								ang_sum -= angs[i+1];
+								//ang_sum -= $scope.T[i+1];
+								$scope.J[i] = {};
+								$scope.J[i].x = $scope.J[i + 1].x - $scope.L * Math.sin(ang_sum);
+								$scope.J[i].y = $scope.J[i + 1].y + $scope.L * Math.cos(ang_sum);
+			
+							}
+			
+							for (i = 0; i < $scope.T.length; i++) {
+								$scope.T[i] += ($scope.J[i].x * $scope.F.x + $scope.J[i].y + $scope.F.y) / 5000;
+							}
+							console.log($scope.G);
+						}, 100);
+			
+						//}
+			
+						//$scope.forwardKinematics();
+			*/
+		}); //controller
+
+
+
+	</script>
+
+</head>
+
+<body ng-controller="mainController">
+
+
+	<svg id="mydrawing" ng-mousemove="m($event)" style="background-color:white;position:absolute;top:0;left:0;width:100%;height:100%">
+		<g ng-repeat="r in p">
+			<line ng-if="$index" style="stroke:{{$even?'red':'blue'}};stroke-width:2" ng-attr-x1="{{ p[$index-1].x }}" ng-attr-y1="{{ p[$index-1].y }}"
+			 ng-attr-x2="{{r.x}}" ng-attr-y2="{{r.y}}"></line>
+		</g>
+		<circle ng-attr-cx="{{G.x}}" ng-attr-cy="{{G.y}}" r="5" fill="red"></circle>
+
+	</svg>
+
+	<!--
+		<div id="menu" style="position: absolute; display:none; border:1px solid black;">
+		<button id="runRightTurn">Run Right-Turn</button> <br>
+		<button id="runBug1">Run Bug1</button> <br>
+		<button id="runBug2">Run Bug2</button> <br>
+		<button id="stopButton">Stop</button> <br>
+		<button onclick="location.reload()">Reset</button>
+		</div>
+	 -->
+</body>
+
+</html>
+
+<!-- 
+<svg id="mydrawing" ng-mousemove="trackMouse($event,AG)" ng-mousedown="mdown($event, AG);" ng-mouseup="mup();" width="600"
+ height="600" style="border:1px solid black">
+
+</svg>
+
+
+<g ng-cloak="ng-cloak" ng-repeat="c in AGCol">
+	<circle ng-attr-cx="{{AGColX[$index]}}" ng-attr-cy="{{(AG[c]==null)?-10:(AG[c]/5*10.667+105)}}" r="5" fill="{{(xc==$index)?'red':'blue'}}"></circle>
+</g>
+<g ng-cloak="ng-cloak" ng-repeat="c in AGBCol">
+	<circle ng-attr-cx="{{AGColX[$index]}}" ng-attr-cy="{{(AG[c]==null)?-10:(AG[c]/5*10.667+105)}}" r="8" stroke="{{(xc==$index)?'red':'green'}}"
+	 stroke-width="2" fill-opacity="0"></circle>
+</g>
+<br/> -->

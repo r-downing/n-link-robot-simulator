@@ -71,12 +71,21 @@
 
 				var ang_sum = 0;
 				var angs=[];
+				var angs2=[];
 				for(i=0;i<$scope.p.length;i++){
 					angs[i] = Math.atan2(($scope.p[i].y-(i?$scope.p[i-1].y:$scope.yc)),($scope.p[i].x-(i?$scope.p[i-1].x:$scope.xc)));
 					if(i) angs[i] -= angs[i-1];
-					ang_sum += angs[i];//$scope.T[i];
+					ang_sum += angs[i];
+					//ang_sum += $scope.T[i];
+					angs2[i]=0;
+					for(j=0;j<$scope.p.length;j++){
+						angs2[i] += $scope.T[j];
+					}
 				}
+				console.log("aaa");
 				console.log(angs);
+				console.log($scope.T);
+				
 
 				$scope.J = []; //jacobian
 				$scope.J[$scope.T.length - 1] = {};
@@ -84,7 +93,8 @@
 				$scope.J[$scope.T.length - 1].y = $scope.L * Math.cos(ang_sum);
 
 				for (i = $scope.T.length - 2; i >= 0; i--) {
-					ang_sum -= angs[i+1];// $scope.T[i+1];
+					ang_sum -= angs[i+1];
+					//ang_sum -= $scope.T[i+1];
 					$scope.J[i] = {};
 					$scope.J[i].x = $scope.J[i + 1].x - $scope.L * Math.sin(ang_sum);
 					$scope.J[i].y = $scope.J[i + 1].y + $scope.L * Math.cos(ang_sum);
@@ -95,7 +105,7 @@
 					$scope.T[i] += ($scope.J[i].x * $scope.F.x + $scope.J[i].y + $scope.F.y) / 5000;
 				}
 				console.log($scope.G);
-			}, 50);
+			}, 100);
 
 			//}
 
