@@ -19,42 +19,8 @@
 				return $scope.pt.matrixTransform($scope.svg.getScreenCTM().inverse());
 			}
 
-			$scope.angs = [];
-			for(i=0; i<$scope.lens.length; i++) $scope.angs[i] = 0;
-
-			$scope.forwardKinematics = function(){
-				var screen = $scope.svg.getBoundingClientRect();
-				$scope.pts = [{}];
-				$scope.pts[0].x = screen.width / 2;
-				$scope.pts[0].y = screen.height / 2;
-				for(i=0; i<$scope.lens.length; i++){
-					$scope.pts[i+1] = {
-						x:($scope.pts[i].x + $scope.lens[i]*Math.cos($scope.angs[i])), 
-						y:($scope.pts[i].y + $scope.lens[i]*Math.sin($scope.angs[i]))
-					};
-					
-				}
-
-			}//forwardKinematics
-			
-			$scope.inverseKinematics = function(){
-				$scope.forwardKinematics();
-				if($scope.G) {
-
-				}
-			}
 
 
-			$scope.inverseKinematics();
-
-
-			$scope.m = function (evt) {
-				var t = $scope.cursorPoint(evt);
-				$scope.G = t;
-			}
-
-
-/*
 			$scope.showrobot = function (angs, lens) {
 				var screen = $scope.svg.getBoundingClientRect();
 				$scope.xc = screen.width / 2;
@@ -112,8 +78,8 @@
 
 				$scope.dist = Math.hypot($scope.vec.x, $scope.vec.y);
 
-				$scope.eps = .001;
-				$scope.lambda = .01 / 60000; // /maxlens
+				$scope.eps = .01;
+				$scope.lambda = .01 / 300000; // /maxlens
 
 				$scope.angs = angs;
 
@@ -135,7 +101,7 @@
 			}
 
 			$scope.mainloop = function (angs, lens) {
-				if ($scope.dist > $scope.eps) {
+				while ($scope.dist > $scope.eps) {
 					console.log("while");
 
 					var jac = $scope.nlinkjac(angs, lens);
@@ -147,7 +113,9 @@
 					pts = $scope.showrobot(angs, lens);
 					$scope.pts = pts;
 					vec = { x: ($scope.G.x - pts[pts.length - 1].x), y: ($scope.G.y - pts[pts.length - 1].y) };
-					dist = Math.hypot(vec.x, vec.y);
+					$scope.vec = vec;
+					$scope.dist = Math.hypot(vec.x, vec.y);
+		
 				}
 			}
 
@@ -159,12 +127,12 @@
 				//}
 
 				$scope.gotopoint($scope.G, $scope.lens);
-				$interval(function(){
+				//$interval(function(){
 					$scope.mainloop($scope.angs, $scope.lens);
-				}, 20)
+				//}, 3)
 
 			}
-			*/
+			
 
 		}); //controller
 
@@ -184,6 +152,7 @@
 			<!-- <circle ng-attr-cx="{{r.x}}" ng-attr-cy="{{r.y}}" r="5" fill="blue"></circle> -->
 
 		</g>
+		<line ng-attr-x1="{{pts[pts.length-1].x}}" ng-attr-y1="{{pts[pts.length-1].y}}" ng-attr-x2="{{pts[pts.length-1].x+3*vec.x}}" ng-attr-y2="{{pts[pts.length-1].y+3*vec.y}}" style="stroke:yellow;stroke-width:2"></line>
 		<circle ng-attr-cx="{{G.x}}" ng-attr-cy="{{G.y}}" r="5" fill="red"></circle>
 
 	</svg>
