@@ -10,7 +10,7 @@
 
 			$scope.svg = document.querySelector('svg');
 
-			$scope.lens = [60, 60, 50, 40, 30];
+			$scope.lens = [60, 60, 50, 40, 30, 30];
 			// Create an SVGPoint for future math
 			$scope.pt = $scope.svg.createSVGPoint();
 			// Get point in global SVG space
@@ -63,12 +63,14 @@
 				return jac;
 			}
 
-			$scope.gotopoint = function (pt, lens) {
-				var angs = [];
+			$scope.angs = [];
 
-				for (i = 0; i < lens.length; i++) {
-					angs[i] = 0;
+				for (i = 0; i < $scope.lens.length; i++) {
+					$scope.angs[i] = 0;
 				}
+
+			$scope.gotopoint = function (pt, lens, angs) {
+
 
 				var pts = $scope.showrobot(angs, lens);
 				$scope.pts = pts;
@@ -78,8 +80,8 @@
 
 				$scope.dist = Math.hypot($scope.vec.x, $scope.vec.y);
 
-				$scope.eps = .01;
-				$scope.lambda = .01 / 300000; // /maxlens
+				$scope.eps = .1;
+				$scope.lambda = .01 / 100000; // /maxlens
 
 				$scope.angs = angs;
 
@@ -101,7 +103,7 @@
 			}
 
 			$scope.mainloop = function (angs, lens) {
-				while ($scope.dist > $scope.eps) {
+				if ($scope.G && $scope.dist > $scope.eps) {
 					console.log("while");
 
 					var jac = $scope.nlinkjac(angs, lens);
@@ -126,14 +128,16 @@
 				$scope.G = t;
 				//}
 
-				$scope.gotopoint($scope.G, $scope.lens);
-				//$interval(function(){
-					$scope.mainloop($scope.angs, $scope.lens);
-				//}, 3)
+				$scope.gotopoint($scope.G, $scope.lens, $scope.angs);
+
 
 			}
-			
 
+			$scope.pts = $scope.showrobot($scope.angs, $scope.lens);
+			
+			$interval(function(){
+					$scope.mainloop($scope.angs, $scope.lens);
+				}, 2)
 		}); //controller
 
 
