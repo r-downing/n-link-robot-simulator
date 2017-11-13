@@ -80,8 +80,8 @@
 
 				$scope.dist = Math.hypot($scope.vec.x, $scope.vec.y);
 
-				$scope.eps = .1;
-				$scope.lambda = .01 / 100000; // /maxlens
+				$scope.eps = 1;
+				$scope.lambda = .01 / 60000; // /maxlens
 
 				$scope.angs = angs;
 
@@ -137,7 +137,7 @@
 			
 			$interval(function(){
 					$scope.mainloop($scope.angs, $scope.lens);
-				}, 2)
+				}, 1)
 		}); //controller
 
 
@@ -149,7 +149,7 @@
 <body ng-controller="mainController">
 
 
-	<svg id="mydrawing" ng-click="m($event)" style="background-color:white;position:absolute;top:0;left:0;width:100%;height:100%">
+	<svg id="mydrawing" ng-mousemove="m($event)" style="background-color:white;position:absolute;top:0;left:0;width:100%;height:100%">
 		<g ng-repeat="r in pts">
 			<line ng-if="$index" style="stroke:{{$even?'red':'blue'}};stroke-width:2" ng-attr-x1="{{ pts[$index-1].x }}" ng-attr-y1="{{ pts[$index-1].y }}"
 			 ng-attr-x2="{{r.x}}" ng-attr-y2="{{r.y}}"></line>
