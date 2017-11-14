@@ -154,7 +154,7 @@
 			 ng-attr-y1="{{ pts[$index-1].y }}" ng-attr-x2="{{r.x}}" ng-attr-y2="{{r.y}}"></line>
 
 		</g>
-		<line ng-attr-x1="{{pts[pts.length-1].x}}" ng-attr-y1="{{pts[pts.length-1].y}}" ng-attr-x2="{{pts[pts.length-1].x+3*vec.x}}"
+		<line ng-if="G" ng-attr-x1="{{pts[pts.length-1].x}}" ng-attr-y1="{{pts[pts.length-1].y}}" ng-attr-x2="{{pts[pts.length-1].x+3*vec.x}}"
 		 ng-attr-y2="{{pts[pts.length-1].y+3*vec.y}}" style="stroke:yellow;stroke-width:2"></line>
 		<circle ng-attr-cx="{{G.x}}" ng-attr-cy="{{G.y}}" r="5" fill="green"></circle>
 
