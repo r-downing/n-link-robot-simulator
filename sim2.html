@@ -10,7 +10,8 @@
 
 			$scope.svg = document.querySelector('svg');
 
-			$scope.lens = [60, 60, 50, 40, 30, 30];
+			//array of manipulator link lengths
+			$scope.lens = [60, 60, 50, 50, 40, 30, 30];
 			// Create an SVGPoint for future math
 			$scope.pt = $scope.svg.createSVGPoint();
 			// Get point in global SVG space
@@ -20,14 +21,14 @@
 			}
 
 
-
+			//forward kinematics, returns start point and manipulator endpoints
 			$scope.showrobot = function (angs, lens) {
 				var screen = $scope.svg.getBoundingClientRect();
 				$scope.xc = screen.width / 2;
 				$scope.yc = screen.height / 2;
 				var pts = [];
+				//center robot at screen center
 				pts[0] = { x: $scope.xc, y: $scope.yc };
-				//pts[0] = {x:0,y:0};
 				var angsum = 0;
 
 				for (i = 0; i < angs.length; i++) {
@@ -40,6 +41,7 @@
 				return pts;
 			}
 
+			//computes jacobian
 			$scope.nlinkjac = function (angs, lens) {
 				var jac = [];
 
@@ -63,11 +65,11 @@
 				return jac;
 			}
 
+			//initialize angles to 0
 			$scope.angs = [];
-
-				for (i = 0; i < $scope.lens.length; i++) {
-					$scope.angs[i] = 0;
-				}
+			for (i = 0; i < $scope.lens.length; i++) {
+				$scope.angs[i] = 0;
+			}
 
 			$scope.gotopoint = function (pt, lens, angs) {
 
@@ -80,28 +82,21 @@
 
 				$scope.dist = Math.hypot($scope.vec.x, $scope.vec.y);
 
+				if ($scope.dist > .05) {
+					$scope.vec.x = $scope.vec.x / $scope.dist;
+					$scope.vec.y = $scope.vec.y / $scope.dist;
+				} else {
+					$scope.vec.x = $scope.vec.x / .05;
+					$scope.vec.y = $scope.vec.y / .05;
+				}
 				$scope.eps = 1;
-				$scope.lambda = .01 / 60000; // /maxlens
+				$scope.lambda = .01 / 50000; // /maxlens
 
 				$scope.angs = angs;
 
-				//while (dist > eps) {
-					// console.log("while");
-
-					// var jac = $scope.nlinkjac(angs, lens);
-					// var dangs = [];
-					// for(i=0; i<jac.length; i++){
-					// 	dangs[i] = lambda*jac[i].x*vec.x + lambda*jac[i].y*vec.y;
-					// 	angs[i] += dangs[i];
-					// }
-					// pts = $scope.showrobot(angs, lens);
-					// $scope.pts = pts;
-					// vec = { x: (pt.x - pts[pts.length - 1].x), y: (pt.y - pts[pts.length - 1].y) };
-					// dist = Math.hypot(vec.x, vec.y);
-
-				//}
 			}
 
+			//calculation to run repeatedly
 			$scope.mainloop = function (angs, lens) {
 				if ($scope.G && $scope.dist > $scope.eps) {
 					console.log("while");
@@ -117,14 +112,14 @@
 					vec = { x: ($scope.G.x - pts[pts.length - 1].x), y: ($scope.G.y - pts[pts.length - 1].y) };
 					$scope.vec = vec;
 					$scope.dist = Math.hypot(vec.x, vec.y);
-		
+
 				}
 			}
 
+			//mousemove handler
 			$scope.m = function (evt) {
 				//$scope.G = 
 				var t = $scope.cursorPoint(evt);
-				//if(Math.hypot(t.x-$scope.center.x,t.y-$scope.center.y) <$scope.totalLen){
 				$scope.G = t;
 				//}
 
@@ -133,11 +128,12 @@
 
 			}
 
+			//initial points display
 			$scope.pts = $scope.showrobot($scope.angs, $scope.lens);
-			
-			$interval(function(){
-					$scope.mainloop($scope.angs, $scope.lens);
-				}, 1)
+
+			$interval(function () {
+				$scope.mainloop($scope.angs, $scope.lens);
+			}, 1)
 		}); //controller
 
 
@@ -148,44 +144,24 @@
 
 <body ng-controller="mainController">
 
-
-	<svg id="mydrawing" ng-mousemove="m($event)" style="background-color:white;position:absolute;top:0;left:0;width:100%;height:100%">
+	<!-- live display of angles -->
+	<div style="position:absolute;top:0;left:0">
+		<p ng-repeat="a in angs">{{$index}}:{{a*180/3.14159}}</p>
+	</div>
+	<svg id="mydrawing" ng-mousemove="m($event)" style="position:absolute;top:0;left:0;width:100%;height:100%">
 		<g ng-repeat="r in pts">
-			<line ng-if="$index" style="stroke:{{$even?'red':'blue'}};stroke-width:2" ng-attr-x1="{{ pts[$index-1].x }}" ng-attr-y1="{{ pts[$index-1].y }}"
-			 ng-attr-x2="{{r.x}}" ng-attr-y2="{{r.y}}"></line>
-			<!-- <circle ng-attr-cx="{{r.x}}" ng-attr-cy="{{r.y}}" r="5" fill="blue"></circle> -->
+			<line ng-if="$index" style="stroke:{{$even?'red':'blue'}};stroke-width:{{pts.length-$index}}" ng-attr-x1="{{ pts[$index-1].x }}"
+			 ng-attr-y1="{{ pts[$index-1].y }}" ng-attr-x2="{{r.x}}" ng-attr-y2="{{r.y}}"></line>
 
 		</g>
-		<line ng-attr-x1="{{pts[pts.length-1].x}}" ng-attr-y1="{{pts[pts.length-1].y}}" ng-attr-x2="{{pts[pts.length-1].x+3*vec.x}}" ng-attr-y2="{{pts[pts.length-1].y+3*vec.y}}" style="stroke:yellow;stroke-width:2"></line>
-		<circle ng-attr-cx="{{G.x}}" ng-attr-cy="{{G.y}}" r="5" fill="red"></circle>
+		<line ng-attr-x1="{{pts[pts.length-1].x}}" ng-attr-y1="{{pts[pts.length-1].y}}" ng-attr-x2="{{pts[pts.length-1].x+3*vec.x}}"
+		 ng-attr-y2="{{pts[pts.length-1].y+3*vec.y}}" style="stroke:yellow;stroke-width:2"></line>
+		<circle ng-attr-cx="{{G.x}}" ng-attr-cy="{{G.y}}" r="5" fill="green"></circle>
 
 	</svg>
 
-	<!--
-		<div id="menu" style="position: absolute; display:none; border:1px solid black;">
-		<button id="runRightTurn">Run Right-Turn</button> <br>
-		<button id="runBug1">Run Bug1</button> <br>
-		<button id="runBug2">Run Bug2</button> <br>
-		<button id="stopButton">Stop</button> <br>
-		<button onclick="location.reload()">Reset</button>
-		</div>
-	 -->
+
+
 </body>
 
 </html>
-
-<!-- 
-<svg id="mydrawing" ng-mousemove="trackMouse($event,AG)" ng-mousedown="mdown($event, AG);" ng-mouseup="mup();" width="600"
- height="600" style="border:1px solid black">
-
-</svg>
-
-
-<g ng-cloak="ng-cloak" ng-repeat="c in AGCol">
-	<circle ng-attr-cx="{{AGColX[$index]}}" ng-attr-cy="{{(AG[c]==null)?-10:(AG[c]/5*10.667+105)}}" r="5" fill="{{(xc==$index)?'red':'blue'}}"></circle>
-</g>
-<g ng-cloak="ng-cloak" ng-repeat="c in AGBCol">
-	<circle ng-attr-cx="{{AGColX[$index]}}" ng-attr-cy="{{(AG[c]==null)?-10:(AG[c]/5*10.667+105)}}" r="8" stroke="{{(xc==$index)?'red':'green'}}"
-	 stroke-width="2" fill-opacity="0"></circle>
-</g>
-<br/> -->
