@@ -1,1 +1,0 @@
-# n-link-robot-simulator
